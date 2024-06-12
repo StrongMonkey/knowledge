@@ -21,18 +21,19 @@ jobs:
           go-version: "${{ env.GO_VERSION }}"
       - name: Setup CI Tools
         run: make ci-setup
+      - name: Build
+        run: make build
       # Tests
       - name: Run Go Tests
         run: make test
-      # Builds
-      - name: Test Platform Builds
-        run: make build-cross
 
 
   release-github:
     name: Build & Release Binaries
-    # Only run on tags
-    runs-on: ubuntu-22.04
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ ubuntu-22.04, macos-latest ]
     steps:
       # Setup
       - uses: actions/checkout@v4
@@ -42,6 +43,18 @@ jobs:
           go-version: "${{ env.GO_VERSION }}"
       - name: Setup CI Tools
         run: make ci-setup
+      - name: Install Homebrew on macOS
+        if: runner.os == 'macOS'
+        run: |
+          /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
+          echo 'eval "$(/opt/homebrew/bin/brew shellenv)"' >> ~/.zprofile
+          eval "$(/opt/homebrew/bin/brew shellenv)"
+          brew install mingw-w64
+      - name: Install GCC on Linux
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt update
+          sudo apt install gcc -y
       # Go Build
       - name: Build Binary
         run: make gen-checksum build-cross
@@ -63,7 +76,6 @@ jobs:
           allowUpdates: true
           artifactErrorsFailBuild: true
           artifacts: dist/*
-          # discussionCategory: releases
           makeLatest: ${{ steps.semver.outputs.prerelease == '' }}
           generateReleaseNotes: true
           prerelease: ${{ steps.semver.outputs.prerelease != '' }}
