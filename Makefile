@@ -12,7 +12,7 @@ endif
 GO_TAGS := netgo
 LD_FLAGS := -s -w -X github.com/gptscript-ai/knowledge/version.Version=${GIT_TAG}
 build:
-	go build -o bin/knowledge -tags "${GO_TAGS}" -ldflags '$(LD_FLAGS)' .
+	go build -o bin/knowledge -tags "${GO_TAGS}" -ldflags '$(LD_FLAGS) ' .
 
 run: build
 	bin/knowledge server
@@ -36,11 +36,18 @@ lint:
 test:
 	go test -v ./...
 
-# cross-compilation for all targets
-TARGETS ?= darwin/amd64 darwin/arm64 linux/amd64 linux/386 linux/arm linux/arm64 windows/amd64
-build-cross: LD_FLAGS += -extldflags "-static"
 build-cross:
-	CGO_ENABLED=0 gox -parallel=3 -output="dist/knowledge-{{.OS}}-{{.Arch}}" -osarch='$(TARGETS)' $(GOFLAGS) $(if $(GO_TAGS),-tags '$(TAGS)',) -ldflags '$(LD_FLAGS)'
+	if [ "$(GOOS)" = "linux" ]; then \
+		CGO_ENABLED=1 GOARCH=arm64 go build -o dist/knowledge-darwin-arm64 -tags "${GO_TAGS}" -ldflags '$(LD_FLAGS) -extldflags "-static"' . \
+	else \
+		# window amd64
+		CGO_ENABLED=1 CC=x86_64-w64-mingw32-gcc GOOS=windows GOARCH=amd64 go build -o dist/knowledge-windows-amd64 -tags "${GO_TAGS}" -ldflags '$(LD_FLAGS)' . \
+		# darwin amd64
+		CGO_ENABLED=1 GOARCH=amd64 go build -o dist/knowledge-darwin-amd64 -tags "${GO_TAGS}" -ldflags '$(LD_FLAGS)' . \
+		#darwin arm64
+		CGO_ENABLED=1 GOARCH=arm64 go build -o dist/knowledge-darwin-arm64 -tags "${GO_TAGS}" -ldflags '$(LD_FLAGS)' . \
+	fi
+
 gen-checksum:	build-cross
 	$(eval ARTIFACTS_TO_PUBLISH := $(shell ls dist/*))
 	$$(sha256sum $(ARTIFACTS_TO_PUBLISH) > dist/checksums.txt)
@@ -50,5 +57,3 @@ ci-setup:
 	@echo "### -> Installing golangci-lint..."
 	curl -sfL $(PKG_GOLANGCI_LINT_SCRIPT) | sh -s -- -b $(GOENVPATH)/bin v$(PKG_GOLANGCI_LINT_VERSION)
 
-	@echo "### -> Installing gox..."
-	./scripts/install-tools.sh gox
