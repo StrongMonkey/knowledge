@@ -4,11 +4,12 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"log/slog"
+
 	"github.com/gptscript-ai/knowledge/pkg/datastore"
 	flowconfig "github.com/gptscript-ai/knowledge/pkg/flows/config"
 	vserr "github.com/gptscript-ai/knowledge/pkg/vectorstore/errors"
 	"github.com/spf13/cobra"
-	"log/slog"
 )
 
 type ClientRetrieve struct {
@@ -100,7 +101,7 @@ func (s *ClientRetrieve) Run(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
-	fmt.Printf("Retrieved the following %d source collections for the original query %q: %s\n", len(retrievalResp.Responses), query, jsonSources)
+	fmt.Println(string(jsonSources))
 
 	return nil
 }

@@ -3,10 +3,11 @@ package config
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/gptscript-ai/knowledge/pkg/output"
 	"log/slog"
 	"os"
 	"strings"
+
+	"github.com/gptscript-ai/knowledge/pkg/output"
 
 	"github.com/gptscript-ai/knowledge/pkg/datastore/documentloader"
 	"github.com/gptscript-ai/knowledge/pkg/datastore/postprocessors"
